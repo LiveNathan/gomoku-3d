@@ -32,10 +32,11 @@ const mouse = new THREE.Vector2();
 
 window.addEventListener('click', onClick, false);
 
-function onClick(event) {
+function clickHandler(event) {
     // Normalized mouse coordinates
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    console.log("Mouse click at: " + mouse);
 
     // Update the picking ray with the camera and mouse position
     raycaster.setFromCamera(mouse, camera);
@@ -58,6 +59,7 @@ function onClick(event) {
 
         // Setting the stone position to the clicked location
         stone.position.set(pos.x, pos.y, pos.z + 0.05);
+        console.log(stone.position);
         stone.rotation.x = Math.PI / 2;
 
         scene.add(stone);
