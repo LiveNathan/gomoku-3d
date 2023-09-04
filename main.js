@@ -2,101 +2,228 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 
-const loader = new THREE.TextureLoader();
+THREE.Cache.enabled = true;
+
+const PERSPECTIVE_CAMERA_FOV = 75;
+const PERSPECTIVE_CAMERA_NEAR = 0.1;
+const PERSPECTIVE_CAMERA_FAR = 1000;
+const BOARD_SIZE = 14;
+const HALF_BOARD_SIZE = BOARD_SIZE / 2;
+const SPHERE_RADIUS = 0.4;
+const SPHERE_WIDTH_SEGMENT = 32;
+const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 2;
 
 const scene = new THREE.Scene();
-const renderer = new THREE.WebGLRenderer();
-const labelRenderer = new CSS2DRenderer();
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-labelRenderer.setSize(window.innerWidth, window.innerHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0px';
-document.body.appendChild(labelRenderer.domElement);
-
-const boardSize = 14; // Including the edges
-const halfBoardSize = boardSize / 2;  // 7
-const gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(null)); // initialize the game board as 2D array
-
-const grid = new THREE.GridHelper(boardSize, boardSize);
-grid.position.set(halfBoardSize, -halfBoardSize, 0);
-grid.rotation.x = Math.PI / 2; // rotate 90 degrees
-
-// Add grid labels
-for (let i = 0; i < boardSize + 1; i++) {
-    for (let j = 0; j < boardSize + 1; j++) {
-        const div = document.createElement('div');
-        div.className = 'label';
-        div.textContent = `(${i}, ${j})`;
-        // div.style.marginTop = '-1em';
-        const label = new CSS2DObject(div);
-        label.position.set(i, -j, 0);
-        scene.add(label);
-    }
-}
-
-scene.add(grid);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(halfBoardSize, -halfBoardSize, boardSize);
-camera.lookAt(halfBoardSize, -halfBoardSize, 0);
-
 let currentPlayer = 'black';
 
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-window.addEventListener('click', clickHandler, false);
-
-// Create a transparent plane to capture the mouse clicks
-const clickTolerance = 0.5;
-const geometry = new THREE.PlaneGeometry(boardSize + clickTolerance, boardSize + clickTolerance);
-const material = new THREE.MeshBasicMaterial({
-    color: 0xFFFFFF,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.1
-});
-const plane = new THREE.Mesh(geometry, material);
-plane.position.set(halfBoardSize, -halfBoardSize, 0);
-
-scene.add(plane);
-
-function clickHandler(event) {
-    // Normalized mouse coordinates
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    console.log("Mouse click at: " + mouse.x + ", " + mouse.y);
-
-    raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObjects([plane]);
-    console.log("Intersects: " + intersects.length);
-
-    if (intersects.length > 0) {
-        let intersectPoint = intersects[0].point;
-
-        // convert the float point to a grid index
-        let gridX = Math.round(intersectPoint.x);
-        let gridY = Math.round(Math.abs(intersectPoint.y));
-
-        // check if grid indexes are within the board size
-        if (gridX >= 0 && gridX <= boardSize && gridY >= 0 && gridY <= boardSize) {
-            console.log(`Click at grid location: (${gridX}, ${gridY})`);
-        }
-    }
+function initializeGameBoard() {
+    const gameBoard = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
+    return {gameBoard};
 }
 
-let axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+function createUpdateSizes(camera, renderer, labelRenderer) {
+    return function updateSizes() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
-// const controls = new OrbitControls(camera, renderer.domElement);
+        // Update the camera's aspect ratio
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
 
-function animate() {
-    requestAnimationFrame(animate);
+        // Update the size of both renderer and labelRenderer
+        renderer.setSize(width, height);
+        labelRenderer.setSize(width, height);
+    };
+}
+
+function initializeCamera() {
+    const camera = new THREE.PerspectiveCamera(
+        PERSPECTIVE_CAMERA_FOV,
+        window.innerWidth / window.innerHeight,
+        PERSPECTIVE_CAMERA_NEAR,
+        PERSPECTIVE_CAMERA_FAR
+    );
+    camera.position.set(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, BOARD_SIZE);
+    camera.lookAt(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, 0);
+    return camera;
+}
+
+function createRenderer() {
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    return renderer;
+}
+
+function createLabelRenderer() {
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    document.body.appendChild(labelRenderer.domElement);
+    return labelRenderer;
+}
+
+function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
+
+    const handlePlayerTurn = function (event) {
+        try {
+            const mouse = new THREE.Vector2();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([plane]);
+            if (intersects.length > 0) {
+                let intersectPoint = intersects[0].point;
+                let gridX = Math.round(intersectPoint.x);
+                let gridY = Math.round(Math.abs(intersectPoint.y));
+                // check if grid indexes are within the board size
+                if (gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE) {
+                    // Draw a new stone only if the grid cell is currently empty
+                    if (gameBoard[gridY][gridX] === null) {
+                        drawStone(gridX, gridY, currentPlayer, gameBoard);
+                        currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                        document.getElementById('info').innerText = `Player turn: ${currentPlayer}`;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('An error occurred while processing player turn: ', e);
+        }
+    };
+
+    window.addEventListener('click', handlePlayerTurn, false);
+    window.addEventListener('resize', updateSizes, false);
+
+    // Return a function to clean up listeners when they're no longer needed
+    const cleanup = function () {
+        window.removeEventListener('click', handlePlayerTurn);
+        window.removeEventListener('resize', handleResize);
+    };
+    window.addEventListener('beforeunload', cleanup);
+    return cleanup;
+}
+
+function createSceneContent() {
+    const grid = new THREE.GridHelper(BOARD_SIZE, BOARD_SIZE);
+    grid.position.set(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, 0);
+    grid.rotation.x = Math.PI / 2; // rotate 90 degrees
+
+    for (let i = 0; i < BOARD_SIZE + 1; i++) {
+        for (let j = 0; j < BOARD_SIZE + 1; j++) {
+            const div = document.createElement('div');
+            div.className = 'label';
+            div.textContent = `(${i}, ${j})`;
+            const label = new CSS2DObject(div);
+            label.position.set(i, -j, 0);
+            scene.add(label);
+        }
+    }
+    scene.add(grid);
+
+    return scene;
+}
+
+function createPlane() {
+    const clickTolerance = 0.5;
+    const geometry = new THREE.PlaneGeometry(BOARD_SIZE + clickTolerance, BOARD_SIZE + clickTolerance);
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.1
+    });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.position.set(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, 0);
+    scene.add(plane);
+
+    return plane;
+}
+
+const loader = new THREE.TextureLoader();
+let blackStoneTexture = null;
+let whiteStoneTexture = null;
+
+loader.load(
+    // resource URL
+    'public/black-stone.jpg',
+    // onLoad callback
+    function (texture) {
+        // in this section you can create the material with texture
+        blackStoneTexture = texture;
+    },
+    // onProgress callback currently not supported
+    undefined,
+    // onError callback
+    function (error) {
+        console.error('An error happened while loading black stone texture', error);
+    }
+);
+
+loader.load(
+    // resource URL
+    'public/white-stone.jpg',
+    // onLoad callback
+    function (texture) {
+        // in this section you can create the material with texture
+        whiteStoneTexture = texture;
+    },
+    // onProgress callback currently not supported
+    undefined,
+    // onError callback
+    function (error) {
+        console.error('An error happened while loading white stone texture', error);
+    }
+);
+
+function drawStone(x, y, color, gameBoard) {
+    let sphereGeometry = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_WIDTH_SEGMENT, SPHERE_HEIGHT_SEGMENT);
+    let stoneMaterial;
+    let texture = color === 'black' ? blackStoneTexture : whiteStoneTexture;
+    if (texture) {
+        stoneMaterial = new THREE.MeshBasicMaterial({map: texture});
+    } else {
+        stoneMaterial = new THREE.MeshBasicMaterial({color: color === 'black' ? 0x000000 : 0xffffff});
+    }
+    let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
+    stone.position.set(x, -y, 0.5);
+    scene.add(stone);
+    gameBoard[y][x] = color;
+}
+
+function drawAxes() {
+    let axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+}
+
+function initializeControls(camera, renderer) {
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, 0);
+    controls.update();
+    return controls;
+}
+
+function animate(renderer, labelRenderer, camera, controls) {
+    requestAnimationFrame(() => animate(renderer, labelRenderer, camera, controls));
+    controls.update();
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
 }
 
-animate();
+function main() {
+    const {gameBoard} = initializeGameBoard();
+    const camera = initializeCamera();
+    const renderer = createRenderer();
+    const controls = initializeControls(camera, renderer);
+    const labelRenderer = createLabelRenderer();
+    const updateSizes = createUpdateSizes(camera, renderer, labelRenderer);
+    const raycaster = new THREE.Raycaster();
+    const plane = createPlane();
+
+    let cleanup = initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes);
+    createSceneContent();
+    drawAxes();
+    animate(renderer, labelRenderer, camera, controls);
+}
+
+main();
