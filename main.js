@@ -188,7 +188,7 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
-    gameBoard[y][x] = color;
+    gameBoard[y][x] = stone;
 }
 
 function drawAxes() {
@@ -210,6 +210,20 @@ function animate(renderer, labelRenderer, camera, controls) {
     labelRenderer.render(scene, camera);
 }
 
+function clearGameBoard(scene, gameBoard) {
+    // Clear the scene from all stones
+    for (let i = 0; i < gameBoard.length; i++) {
+        for (let j = 0; j < gameBoard[i].length; j++) {
+            if (gameBoard[i][j] !== null) {
+                scene.remove(gameBoard[i][j]);
+                gameBoard[i][j] = null;
+            }
+        }
+    }
+    currentPlayer = 'black'; // Reset the current player to black
+    document.getElementById('info').innerText = `Player turn: ${currentPlayer}`;
+}
+
 function main() {
     const {gameBoard} = initializeGameBoard();
     const camera = initializeCamera();
@@ -223,6 +237,16 @@ function main() {
     let cleanup = initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes);
     createSceneContent();
     drawAxes();
+
+    function restartGame(event) {
+        clearGameBoard(scene, gameBoard);
+        initializeGameBoard();
+
+        event.preventDefault();
+    }
+
+    // document.getElementById('restartButton').addEventListener('click', restartGame);
+
     animate(renderer, labelRenderer, camera, controls);
 }
 
