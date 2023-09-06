@@ -10,3 +10,28 @@ body { margin: 0; }
     width: 100px;
     text-align: center;
 }
+
+.restart-button {
+    background-color: #000000; /* Green background */
+    border: 2px solid gray; /* Remove border */
+    color: white; /* White text */
+    padding: 10px 18px; /* Some padding */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* Remove underline */
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s; /* Transition effect */
+    cursor: pointer; /* Add a mouse pointer on hover */
+}
+
+/* Change background color when you move mouse over it (hover) */
+.restart-button:hover {
+    background-color: #45a049;
+}
+
+/* Add background color and box shadow on click (active) */
+.restart-button:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px); /* Move the button 4px down */
+}

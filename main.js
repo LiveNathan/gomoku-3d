@@ -15,9 +15,11 @@ const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 2;
 
 const scene = new THREE.Scene();
 let currentPlayer = 'black';
+let currentPlayerLabel = null;
+let restartButtonLabel = null;
 
 function initializeGameBoard() {
-    const gameBoard = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
+    const gameBoard = Array(BOARD_SIZE + 1).fill().map(() => Array(BOARD_SIZE + 1).fill(null));
     return {gameBoard};
 }
 
@@ -64,33 +66,48 @@ function createLabelRenderer() {
     return labelRenderer;
 }
 
+function createPlayerInfoLabel() {
+    const div = document.createElement('div');
+    div.id = 'player-info';
+    div.className = 'label';
+    div.textContent = `Player turn: ${currentPlayer}`;
+    currentPlayerLabel = new CSS2DObject(div);
+    currentPlayerLabel.position.set(0, 1, 0);
+    scene.add(currentPlayerLabel);
+}
+
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
     const handlePlayerTurn = function (event) {
-        try {
-            const mouse = new THREE.Vector2();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects([plane]);
-            if (intersects.length > 0) {
-                let intersectPoint = intersects[0].point;
-                let gridX = Math.round(intersectPoint.x);
-                let gridY = Math.round(Math.abs(intersectPoint.y));
-                // check if grid indexes are within the board size
-                if (gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE) {
-                    // Draw a new stone only if the grid cell is currently empty
-                    if (gameBoard[gridY][gridX] === null) {
-                        drawStone(gridX, gridY, currentPlayer, gameBoard);
-                        currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
-                        document.getElementById('info').innerText = `Player turn: ${currentPlayer}`;
+            try {
+                const mouse = new THREE.Vector2();
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects([plane]);
+                if (intersects.length > 0) {
+                    let intersectPoint = intersects[0].point;
+                    let gridX = Math.round(intersectPoint.x);
+                    let gridY = Math.round(Math.abs(intersectPoint.y));
+                    // console.log("gridX: " + gridX + " gridY: " + gridY);
+
+                    // check if grid indexes are within the board size
+                    if (gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE) {
+                        // Draw a new stone only if the grid cell is currently empty
+                        // console.log(gameBoard)
+                        // console.log("Gameboard: " + gameBoard[gridY][gridX]);
+                        if (gameBoard[gridY][gridX] === null) {
+                            drawStone(gridX, gridY, currentPlayer, gameBoard);
+                            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                            currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+                        }
                     }
                 }
+            } catch (e) {
+                console.error('An error occurred while processing player turn: ', e);
             }
-        } catch (e) {
-            console.error('An error occurred while processing player turn: ', e);
         }
-    };
+    ;
 
     window.addEventListener('click', handlePlayerTurn, false);
     window.addEventListener('resize', updateSizes, false);
@@ -220,8 +237,23 @@ function clearGameBoard(scene, gameBoard) {
             }
         }
     }
-    currentPlayer = 'black'; // Reset the current player to black
-    document.getElementById('info').innerText = `Player turn: ${currentPlayer}`;
+}
+
+function restartGame(event) {
+    event.preventDefault();
+    clearGameBoard(scene, gameBoard);
+    currentPlayer = 'black';
+    currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+}
+
+function createRestartButton() {
+    const button = document.createElement('button');
+    button.innerText = "Restart";
+    button.className = 'restart-button';
+    button.onclick = restartGame; // set button's click handler to restartGame function
+    restartButtonLabel = new CSS2DObject(button);
+    restartButtonLabel.position.set(BOARD_SIZE,  2, 0); // adjust position as needed
+    scene.add(restartButtonLabel);
 }
 
 function main() {
@@ -236,16 +268,10 @@ function main() {
 
     let cleanup = initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes);
     createSceneContent();
+    createPlayerInfoLabel();
     drawAxes();
 
-    function restartGame(event) {
-        clearGameBoard(scene, gameBoard);
-        initializeGameBoard();
-
-        event.preventDefault();
-    }
-
-    // document.getElementById('restartButton').addEventListener('click', restartGame);
+    createRestartButton();
 
     animate(renderer, labelRenderer, camera, controls);
 }
