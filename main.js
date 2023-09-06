@@ -295,7 +295,11 @@ function restartGame(gameBoard) {
         clearGameBoard(scene, gameBoard);
         currentPlayer = 'black';
         currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
-        let winnerAnnouncement = null;
+
+        if (winnerAnnouncement) {
+            scene.remove(winnerAnnouncement);
+            winnerAnnouncement = null;
+        }
     }
 }
 
@@ -309,54 +313,38 @@ function createRestartButton(gameBoard) {
     scene.add(restartButtonLabel);
 }
 
+function countStonesInDirection(gameBoard, startX, startY, offsetDX, offsetDY, color) {
+    let count = 1;
+
+    let x = startX + offsetDX;
+    let y = startY + offsetDY;
+
+    while (x >= 0 && x <= BOARD_SIZE && y >= 0 && y <= BOARD_SIZE) {
+        if (gameBoard[y][x] !== color) {
+            break;
+        }
+        count++;
+        x += offsetDX;
+        y += offsetDY;
+    }
+
+    return count;
+}
+
 function checkWin(gameBoard, x, y) {
-    // What's the most recent color?
     let mostRecentStoneColor = gameBoard[y][x];
+    let directions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
 
-    // Check in every direction for another color
-    let count = 0;
-    for (let columnOffset = -1; columnOffset < 2; columnOffset++) {
-        for (let rowOffset = -1; rowOffset < 2; rowOffset++) {
-            count = 1;
-            let column = y + columnOffset;
-            let row = x + rowOffset;
-            if (column < 0 || column > 14 || row < 0 || row > 14 || (column === y && row === x)){
-                continue;
-            }
+    for (let i = 0; i < directions.length; i += 2) {
+        let total = countStonesInDirection(gameBoard, x, y, directions[i][0], directions[i][1], mostRecentStoneColor) +
+            countStonesInDirection(gameBoard, x, y, directions[i + 1][0], directions[i + 1][1], mostRecentStoneColor) - 1;
 
-            let nextColorToCheck = gameBoard[column][row];
-
-            // If opposite color, break early
-            if (nextColorToCheck !== mostRecentStoneColor) {
-                continue;
-            }
-
-            // If same color, update count and check on both sides of the line
-            if (nextColorToCheck === mostRecentStoneColor) {
-                while (column >= 0 && column <= 14 && row >= 0 && row <= 14 && (column !== y || row !== x)){
-                    nextColorToCheck = gameBoard[column][row];
-
-                    if (nextColorToCheck !== mostRecentStoneColor) {
-                        break;
-                    }
-
-                    if (nextColorToCheck === mostRecentStoneColor) {
-                        count++;
-                    }
-
-                    let columnSign = Math.sign(columnOffset);
-                    column = column + columnSign;
-
-                    let rowSign = Math.sign(rowOffset)
-                    row = row + rowSign;
-                }
-                return count >= 5;
-            }
+        if (total >= WINNING_NUMBER_OF_STONES) {
+            return true;
         }
     }
 
-    // If count gets to five, return winner
-    return count >= 5;
+    return false;
 }
 
 function main() {
