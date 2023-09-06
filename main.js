@@ -17,6 +17,7 @@ const WINNING_NUMBER_OF_STONES = 5;
 const scene = new THREE.Scene();
 let currentPlayer = 'black';
 let currentPlayerLabel = null;
+let winnerAnnouncement = null;
 let restartButtonLabel = null;
 let stonesInScene = [];
 
@@ -76,6 +77,16 @@ function createPlayerInfoLabel() {
     currentPlayerLabel = new CSS2DObject(div);
     currentPlayerLabel.position.set(0, 1, 0);
     scene.add(currentPlayerLabel);
+}
+
+function announceWinner() {
+    const div = document.createElement('div');
+    div.id = 'winner';
+    div.className = 'winner';
+    div.textContent = `The winner is ${currentPlayer}!`;
+    winnerAnnouncement = new CSS2DObject(div);
+    winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
+    scene.add(winnerAnnouncement);
 }
 
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
@@ -237,6 +248,9 @@ function drawStone(x, y, color, gameBoard) {
     gameBoard[y][x] = color;
     const isGameInWinningState = checkWin(gameBoard, x, y);
     console.log("isWin: " + isGameInWinningState);
+    if (isGameInWinningState) {
+        announceWinner();
+    }
 }
 
 function drawAxes() {
@@ -281,6 +295,7 @@ function restartGame(gameBoard) {
         clearGameBoard(scene, gameBoard);
         currentPlayer = 'black';
         currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+        let winnerAnnouncement = null;
     }
 }
 
