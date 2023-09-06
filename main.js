@@ -12,6 +12,7 @@ const HALF_BOARD_SIZE = BOARD_SIZE / 2;
 const SPHERE_RADIUS = 0.4;
 const SPHERE_WIDTH_SEGMENT = 32;
 const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 3;
+const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
 let currentPlayer = 'black';
@@ -81,15 +82,15 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
 
     let isDragging = false;
 
-    const handleMouseDown = function(event) {
+    const handleMouseDown = function (event) {
         isDragging = false;
     };
 
-    const handleMouseMove = function(event) {
+    const handleMouseMove = function (event) {
         isDragging = true;
     };
 
-    const handleMouseUp = function(event) {
+    const handleMouseUp = function (event) {
         if (!isDragging) {
             handlePlayerTurn(event);
         }
@@ -233,7 +234,9 @@ function drawStone(x, y, color, gameBoard) {
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
     stonesInScene.push(stone);
-    gameBoard[y][x] = stone;
+    gameBoard[y][x] = color;
+    const isGameInWinningState = checkWin(gameBoard, x, y);
+    console.log("isWin: " + isGameInWinningState);
 }
 
 function drawAxes() {
@@ -273,7 +276,7 @@ function clearGameBoard(scene, gameBoard) {
 }
 
 function restartGame(gameBoard) {
-    return function(event) {
+    return function (event) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
         currentPlayer = 'black';
@@ -287,8 +290,58 @@ function createRestartButton(gameBoard) {
     button.className = 'restart-button';
     button.onclick = restartGame(gameBoard); // set button's click handler to restartGame function
     restartButtonLabel = new CSS2DObject(button);
-    restartButtonLabel.position.set(BOARD_SIZE,  2, 0); // adjust position as needed
+    restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
     scene.add(restartButtonLabel);
+}
+
+function checkWin(gameBoard, x, y) {
+    // What's the most recent color?
+    let mostRecentStoneColor = gameBoard[y][x];
+
+    // Check in every direction for another color
+    let count = 0;
+    for (let columnOffset = -1; columnOffset < 2; columnOffset++) {
+        for (let rowOffset = -1; rowOffset < 2; rowOffset++) {
+            count = 1;
+            let column = y + columnOffset;
+            let row = x + rowOffset;
+            if (column < 0 || column > 14 || row < 0 || row > 14 || (column === y && row === x)){
+                continue;
+            }
+
+            let nextColorToCheck = gameBoard[column][row];
+
+            // If opposite color, break early
+            if (nextColorToCheck !== mostRecentStoneColor) {
+                continue;
+            }
+
+            // If same color, update count and check on both sides of the line
+            if (nextColorToCheck === mostRecentStoneColor) {
+                while (column >= 0 && column <= 14 && row >= 0 && row <= 14 && (column !== y || row !== x)){
+                    nextColorToCheck = gameBoard[column][row];
+
+                    if (nextColorToCheck !== mostRecentStoneColor) {
+                        break;
+                    }
+
+                    if (nextColorToCheck === mostRecentStoneColor) {
+                        count++;
+                    }
+
+                    let columnSign = Math.sign(columnOffset);
+                    column = column + columnSign;
+
+                    let rowSign = Math.sign(rowOffset)
+                    row = row + rowSign;
+                }
+                return count >= 5;
+            }
+        }
+    }
+
+    // If count gets to five, return winner
+    return count >= 5;
 }
 
 function main() {
