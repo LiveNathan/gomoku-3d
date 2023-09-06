@@ -11,7 +11,7 @@ const BOARD_SIZE = 14;
 const HALF_BOARD_SIZE = BOARD_SIZE / 2;
 const SPHERE_RADIUS = 0.4;
 const SPHERE_WIDTH_SEGMENT = 32;
-const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 2;
+const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 3;
 
 const scene = new THREE.Scene();
 let currentPlayer = 'black';
@@ -78,6 +78,23 @@ function createPlayerInfoLabel() {
 
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
+    let isDragging = false;
+
+    const handleMouseDown = function(event) {
+        isDragging = false;
+    };
+
+    const handleMouseMove = function(event) {
+        isDragging = true;
+    };
+
+    const handleMouseUp = function(event) {
+        if (!isDragging) {
+            handlePlayerTurn(event);
+        }
+        isDragging = false;
+    };
+
     const handlePlayerTurn = function (event) {
             try {
                 const mouse = new THREE.Vector2();
@@ -85,6 +102,11 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObjects([plane]);
+
+                if (intersects.length === 0) {
+                    return;  // If not clicking on game board, do nothing.
+                }
+
                 if (intersects.length > 0) {
                     let intersectPoint = intersects[0].point;
                     let gridX = Math.round(intersectPoint.x);
@@ -109,13 +131,17 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
         }
     ;
 
-    window.addEventListener('click', handlePlayerTurn, false);
+    window.addEventListener('mousedown', handleMouseDown, false);
+    window.addEventListener('mousemove', handleMouseMove, false);
+    window.addEventListener('mouseup', handleMouseUp, false);
     window.addEventListener('resize', updateSizes, false);
 
     // Return a function to clean up listeners when they're no longer needed
     const cleanup = function () {
-        window.removeEventListener('click', handlePlayerTurn);
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('mousedown', handleMouseDown);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('resize', updateSizes);
     };
     window.addEventListener('beforeunload', cleanup);
     return cleanup;
@@ -216,6 +242,8 @@ function drawAxes() {
 function initializeControls(camera, renderer) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(HALF_BOARD_SIZE, -HALF_BOARD_SIZE, 0);
+    controls.enableZoom = false;
+    controls.enablePan = false;
     controls.update();
     return controls;
 }
@@ -239,18 +267,20 @@ function clearGameBoard(scene, gameBoard) {
     }
 }
 
-function restartGame(event) {
-    event.preventDefault();
-    clearGameBoard(scene, gameBoard);
-    currentPlayer = 'black';
-    currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+function restartGame(gameBoard) {
+    return function(event) {
+        event.preventDefault();
+        clearGameBoard(scene, gameBoard);
+        currentPlayer = 'black';
+        currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+    }
 }
 
-function createRestartButton() {
+function createRestartButton(gameBoard) {
     const button = document.createElement('button');
     button.innerText = "Restart";
     button.className = 'restart-button';
-    button.onclick = restartGame; // set button's click handler to restartGame function
+    button.onclick = restartGame(gameBoard); // set button's click handler to restartGame function
     restartButtonLabel = new CSS2DObject(button);
     restartButtonLabel.position.set(BOARD_SIZE,  2, 0); // adjust position as needed
     scene.add(restartButtonLabel);
@@ -271,7 +301,7 @@ function main() {
     createPlayerInfoLabel();
     drawAxes();
 
-    createRestartButton();
+    createRestartButton(gameBoard);
 
     animate(renderer, labelRenderer, camera, controls);
 }
