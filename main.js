@@ -17,6 +17,7 @@ const scene = new THREE.Scene();
 let currentPlayer = 'black';
 let currentPlayerLabel = null;
 let restartButtonLabel = null;
+let stonesInScene = [];
 
 function initializeGameBoard() {
     const gameBoard = Array(BOARD_SIZE + 1).fill().map(() => Array(BOARD_SIZE + 1).fill(null));
@@ -231,6 +232,7 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
+    stonesInScene.push(stone);
     gameBoard[y][x] = stone;
 }
 
@@ -256,11 +258,14 @@ function animate(renderer, labelRenderer, camera, controls) {
 }
 
 function clearGameBoard(scene, gameBoard) {
-    // Clear the scene from all stones
+    for (let stone of stonesInScene) {
+        scene.remove(stone);
+    }
+    stonesInScene = [];
+
     for (let i = 0; i < gameBoard.length; i++) {
         for (let j = 0; j < gameBoard[i].length; j++) {
             if (gameBoard[i][j] !== null) {
-                scene.remove(gameBoard[i][j]);
                 gameBoard[i][j] = null;
             }
         }
