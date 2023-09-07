@@ -114,7 +114,8 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                     // console.log("gridX: " + gridX + " gridY: " + gridY);
 
                     // check if grid indexes are within the board size
-                    if (gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE) {
+                    const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
+                    if (gridIndexWithinBounds) {
                         // Draw a new stone only if the grid cell is currently empty
                         // console.log(gameBoard)
                         // console.log("Gameboard: " + gameBoard[gridY][gridX]);
