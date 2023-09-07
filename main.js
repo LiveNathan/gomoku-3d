@@ -15,11 +15,13 @@ const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 3;
 const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
-let currentPlayer = 'black';
-let currentPlayerLabel = null;
-let winnerAnnouncement = null;
-let restartButtonLabel = null;
-let stonesInScene = [];
+const GAME_STATE = {
+  let currentPlayer : 'black',
+  let currentPlayerLabel : null,
+  let winnerAnnouncement: null,
+  let restartButtonLabel : null,
+  let stonesInScene : []
+}
 
 function initializeGameBoard() {
     const gameBoard = Array(BOARD_SIZE + 1).fill().map(() => Array(BOARD_SIZE + 1).fill(null));
