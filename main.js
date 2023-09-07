@@ -126,13 +126,10 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                     let intersectPoint = intersects[0].point;
                     let gridX = Math.round(intersectPoint.x);
                     let gridY = Math.round(Math.abs(intersectPoint.y));
-                    // console.log("gridX: " + gridX + " gridY: " + gridY);
 
                     // check if grid indexes are within the board size
                     if (gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE) {
                         // Draw a new stone only if the grid cell is currently empty
-                        // console.log(gameBoard)
-                        // console.log("Gameboard: " + gameBoard[gridY][gridX]);
                         if (gameBoard[gridY][gridX] === null) {
                             drawStone(gridX, gridY, currentPlayer, gameBoard);
                             currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
@@ -249,7 +246,6 @@ function drawStone(x, y, color, gameBoard) {
     stonesInScene.push(stone);
     gameBoard[y][x] = color;
     const isGameInWinningState = checkWin(gameBoard, x, y);
-    console.log("isWin: " + isGameInWinningState);
     if (isGameInWinningState) {
         announceWinner();
     }
@@ -291,7 +287,7 @@ function clearGameBoard(scene, gameBoard) {
     }
 }
 
-function restartGame(gameBoard) {
+function restartGameHandlerFactory(gameBoard) {
     return function (event) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
@@ -309,7 +305,7 @@ function createRestartButton(gameBoard) {
     const button = document.createElement('button');
     button.innerText = "Restart";
     button.className = 'restart-button';
-    button.onclick = restartGame(gameBoard); // set button's click handler to restartGame function
+    button.onclick = restartGameHandlerFactory(gameBoard); // set button's click handler to restartGame function
     restartButtonLabel = new CSS2DObject(button);
     restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
     scene.add(restartButtonLabel);
