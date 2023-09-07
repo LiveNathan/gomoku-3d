@@ -12,11 +12,16 @@ const HALF_BOARD_SIZE = BOARD_SIZE / 2;
 const SPHERE_RADIUS = 0.4;
 const SPHERE_WIDTH_SEGMENT = 32;
 const SPHERE_HEIGHT_SEGMENT = SPHERE_WIDTH_SEGMENT / 3;
+const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
-let currentPlayer = 'black';
-let currentPlayerLabel = null;
-let restartButtonLabel = null;
+const GAME_STATE = {
+  let currentPlayer : 'black',
+  let currentPlayerLabel : null,
+  let winnerAnnouncement: null,
+  let restartButtonLabel : null,
+  let stonesInScene : []
+}
 
 function initializeGameBoard() {
     const gameBoard = Array(BOARD_SIZE + 1).fill().map(() => Array(BOARD_SIZE + 1).fill(null));
@@ -76,19 +81,29 @@ function createPlayerInfoLabel() {
     scene.add(currentPlayerLabel);
 }
 
+function announceWinner() {
+    const div = document.createElement('div');
+    div.id = 'winner';
+    div.className = 'winner';
+    div.textContent = `The winner is ${currentPlayer}!`;
+    winnerAnnouncement = new CSS2DObject(div);
+    winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
+    scene.add(winnerAnnouncement);
+}
+
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
     let isDragging = false;
 
-    const handleMouseDown = function(event) {
+    const handleMouseDown = function (event) {
         isDragging = false;
     };
 
-    const handleMouseMove = function(event) {
+    const handleMouseMove = function (event) {
         isDragging = true;
     };
 
-    const handleMouseUp = function(event) {
+    const handleMouseUp = function (event) {
         if (!isDragging) {
             handlePlayerTurn(event);
         }
@@ -111,14 +126,11 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                     let intersectPoint = intersects[0].point;
                     let gridX = Math.round(intersectPoint.x);
                     let gridY = Math.round(Math.abs(intersectPoint.y));
-                    // console.log("gridX: " + gridX + " gridY: " + gridY);
 
                     // check if grid indexes are within the board size
                     const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
                     if (gridIndexWithinBounds) {
                         // Draw a new stone only if the grid cell is currently empty
-                        // console.log(gameBoard)
-                        // console.log("Gameboard: " + gameBoard[gridY][gridX]);
                         if (gameBoard[gridY][gridX] === null) {
                             drawStone(gridX, gridY, currentPlayer, gameBoard);
                             currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
@@ -232,7 +244,12 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
-    gameBoard[y][x] = stone;
+    stonesInScene.push(stone);
+    gameBoard[y][x] = color;
+    const isGameInWinningState = checkWin(gameBoard, x, y);
+    if (isGameInWinningState) {
+        announceWinner();
+    }
 }
 
 function drawAxes() {
@@ -257,23 +274,31 @@ function animate(renderer, labelRenderer, camera, controls) {
 }
 
 function clearGameBoard(scene, gameBoard) {
-    // Clear the scene from all stones
+    for (let stone of stonesInScene) {
+        scene.remove(stone);
+    }
+    stonesInScene = [];
+
     for (let i = 0; i < gameBoard.length; i++) {
         for (let j = 0; j < gameBoard[i].length; j++) {
             if (gameBoard[i][j] !== null) {
-                scene.remove(gameBoard[i][j]);
                 gameBoard[i][j] = null;
             }
         }
     }
 }
 
-function restartGame(gameBoard) {
-    return function(event) {
+function restartGameHandlerFactory(gameBoard) {
+    return function (event) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
         currentPlayer = 'black';
         currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+
+        if (winnerAnnouncement) {
+            scene.remove(winnerAnnouncement);
+            winnerAnnouncement = null;
+        }
     }
 }
 
@@ -281,10 +306,44 @@ function createRestartButton(gameBoard) {
     const button = document.createElement('button');
     button.innerText = "Restart";
     button.className = 'restart-button';
-    button.onclick = restartGame(gameBoard); // set button's click handler to restartGame function
+    button.onclick = restartGameHandlerFactory(gameBoard); // set button's click handler to restartGame function
     restartButtonLabel = new CSS2DObject(button);
-    restartButtonLabel.position.set(BOARD_SIZE,  2, 0); // adjust position as needed
+    restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
     scene.add(restartButtonLabel);
+}
+
+function countStonesInDirection(gameBoard, startX, startY, offsetDX, offsetDY, color) {
+    let count = 1;
+
+    let x = startX + offsetDX;
+    let y = startY + offsetDY;
+
+    while (x >= 0 && x <= BOARD_SIZE && y >= 0 && y <= BOARD_SIZE) {
+        if (gameBoard[y][x] !== color) {
+            break;
+        }
+        count++;
+        x += offsetDX;
+        y += offsetDY;
+    }
+
+    return count;
+}
+
+function checkWin(gameBoard, x, y) {
+    let mostRecentStoneColor = gameBoard[y][x];
+    let directions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
+
+    for (let i = 0; i < directions.length; i += 2) {
+        let total = countStonesInDirection(gameBoard, x, y, directions[i][0], directions[i][1], mostRecentStoneColor) +
+            countStonesInDirection(gameBoard, x, y, directions[i + 1][0], directions[i + 1][1], mostRecentStoneColor) - 1;
+
+        if (total >= WINNING_NUMBER_OF_STONES) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function main() {

@@ -1,6 +1,6 @@
-/*@tailwind base;*/
-/*@tailwind components;*/
-/*@tailwind utilities;*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body { margin: 0; }
 .label {
@@ -8,6 +8,14 @@ body { margin: 0; }
     color: gray;
     font-size: 12px;
     width: 100px;
+    text-align: center;
+}
+
+.winner {
+    position: absolute;
+    color: green;
+    font-size: 24px;
+    width: 200px;
     text-align: center;
 }
 
