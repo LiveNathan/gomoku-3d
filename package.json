@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "jest": "^29.6.4",
+    "tailwindcss": "^3.3.3",
     "vite": "^4.4.9"
   },
   "dependencies": {
