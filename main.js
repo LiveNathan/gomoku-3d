@@ -16,11 +16,11 @@ const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
 const GAME_STATE = {
-  let currentPlayer : 'black',
-  let currentPlayerLabel : null,
-  let winnerAnnouncement: null,
-  let restartButtonLabel : null,
-  let stonesInScene : []
+  currentPlayer : 'black',
+  currentPlayerLabel : null,
+  winnerAnnouncement: null,
+  restartButtonLabel : null,
+  stonesInScene : []
 }
 
 function initializeGameBoard() {
@@ -76,9 +76,9 @@ function createPlayerInfoLabel() {
     div.id = 'player-info';
     div.className = 'label';
     div.textContent = `Player turn: ${currentPlayer}`;
-    currentPlayerLabel = new CSS2DObject(div);
-    currentPlayerLabel.position.set(0, 1, 0);
-    scene.add(currentPlayerLabel);
+    GAME_STATE.currentPlayerLabel = new CSS2DObject(div);
+    GAME_STATE.currentPlayerLabel.position.set(0, 1, 0);
+    scene.add(GAME_STATE.currentPlayerLabel);
 }
 
 function announceWinner() {
@@ -86,9 +86,9 @@ function announceWinner() {
     div.id = 'winner';
     div.className = 'winner';
     div.textContent = `The winner is ${currentPlayer}!`;
-    winnerAnnouncement = new CSS2DObject(div);
-    winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
-    scene.add(winnerAnnouncement);
+    GAME_STATE.winnerAnnouncement = new CSS2DObject(div);
+    GAME_STATE.winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
+    scene.add(GAME_STATE.winnerAnnouncement);
 }
 
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
@@ -132,9 +132,9 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                     if (gridIndexWithinBounds) {
                         // Draw a new stone only if the grid cell is currently empty
                         if (gameBoard[gridY][gridX] === null) {
-                            drawStone(gridX, gridY, currentPlayer, gameBoard);
-                            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
-                            currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+                            drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
+                            GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
+                            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
                         }
                     }
                 }
@@ -244,7 +244,7 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
-    stonesInScene.push(stone);
+    GAME_STATE.stonesInScene.push(stone);
     gameBoard[y][x] = color;
     const isGameInWinningState = checkWin(gameBoard, x, y);
     if (isGameInWinningState) {
@@ -274,10 +274,10 @@ function animate(renderer, labelRenderer, camera, controls) {
 }
 
 function clearGameBoard(scene, gameBoard) {
-    for (let stone of stonesInScene) {
+    for (let stone of GAME_STATE.stonesInScene) {
         scene.remove(stone);
     }
-    stonesInScene = [];
+    GAME_STATE.stonesInScene = [];
 
     for (let i = 0; i < gameBoard.length; i++) {
         for (let j = 0; j < gameBoard[i].length; j++) {
@@ -292,12 +292,12 @@ function restartGameHandlerFactory(gameBoard) {
     return function (event) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
-        currentPlayer = 'black';
-        currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+        GAME_STATE.currentPlayer = 'black';
+        GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
 
-        if (winnerAnnouncement) {
-            scene.remove(winnerAnnouncement);
-            winnerAnnouncement = null;
+        if (GAME_STATE.winnerAnnouncement) {
+            scene.remove(GAME_STATE.winnerAnnouncement);
+            GAME_STATE.winnerAnnouncement = null;
         }
     }
 }
@@ -307,9 +307,9 @@ function createRestartButton(gameBoard) {
     button.innerText = "Restart";
     button.className = 'restart-button';
     button.onclick = restartGameHandlerFactory(gameBoard); // set button's click handler to restartGame function
-    restartButtonLabel = new CSS2DObject(button);
-    restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
-    scene.add(restartButtonLabel);
+    GAME_STATE.restartButtonLabel = new CSS2DObject(button);
+    GAME_STATE.restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
+    scene.add(GAME_STATE.restartButtonLabel);
 }
 
 function countStonesInDirection(gameBoard, startX, startY, offsetDX, offsetDY, color) {
