@@ -17,6 +17,9 @@ const WINNING_NUMBER_OF_STONES = 5;
 const scene = new THREE.Scene();
 const GAME_STATE = {
     currentPlayer: 'black',
+    playerScores: {black: 0, white: 0},
+    scoreboardDiv: null,
+    scoreboard: null,
     currentPlayerLabel: null,
     winnerAnnouncement: null,
     restartButtonLabel: null,
@@ -75,11 +78,21 @@ function createLabelRenderer() {
 function createPlayerInfoLabel() {
     const div = document.createElement('div');
     div.id = 'player-info';
-    div.className = 'label';
+    div.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
     div.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
     GAME_STATE.currentPlayerLabel = new CSS2DObject(div);
-    GAME_STATE.currentPlayerLabel.position.set(0, 1, 0);
+    GAME_STATE.currentPlayerLabel.position.set(2, 1, 0);
     scene.add(GAME_STATE.currentPlayerLabel);
+}
+
+function createScoreBoard() {
+    GAME_STATE.scoreboardDiv = document.createElement('div');
+    GAME_STATE.scoreboardDiv.id = 'score-board';
+    GAME_STATE.scoreboardDiv.className = 'score-board';
+    GAME_STATE.scoreboardDiv.textContent = `Black: ${GAME_STATE.playerScores["black"]}  White: ${GAME_STATE.playerScores["white"]}`;
+    GAME_STATE.scoreboard = new CSS2DObject(GAME_STATE.scoreboardDiv);
+    GAME_STATE.scoreboard.position.set(BOARD_SIZE, 1, 0);
+    scene.add(GAME_STATE.scoreboard);
 }
 
 function announceWinner() {
@@ -138,6 +151,7 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                         if (gameBoard[gridY][gridX] === null) {
                             drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
                             GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
+                            GAME_STATE.currentPlayerLabel.element.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
                             GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
                         }
                     }
@@ -345,6 +359,8 @@ function checkWin(gameBoard, x, y) {
             countStonesInDirection(gameBoard, x, y, directions[i + 1][0], directions[i + 1][1], mostRecentStoneColor) - 1;
 
         if (total >= WINNING_NUMBER_OF_STONES) {
+            GAME_STATE.playerScores[mostRecentStoneColor] += 1;
+            GAME_STATE.scoreboardDiv.textContent = `Black: ${GAME_STATE.playerScores["black"]}  White: ${GAME_STATE.playerScores["white"]}`;
             return true;
         }
     }
@@ -358,6 +374,7 @@ function main() {
     const renderer = createRenderer();
     const controls = initializeControls(camera, renderer);
     const labelRenderer = createLabelRenderer();
+    createScoreBoard();
     const updateSizes = createUpdateSizes(camera, renderer, labelRenderer);
     const raycaster = new THREE.Raycaster();
     const plane = createPlane();
