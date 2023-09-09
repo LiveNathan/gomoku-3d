@@ -76,7 +76,7 @@ function createPlayerInfoLabel() {
     const div = document.createElement('div');
     div.id = 'player-info';
     div.className = 'label';
-    div.textContent = `Player turn: ${currentPlayer}`;
+    div.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
     GAME_STATE.currentPlayerLabel = new CSS2DObject(div);
     GAME_STATE.currentPlayerLabel.position.set(0, 1, 0);
     scene.add(GAME_STATE.currentPlayerLabel);
@@ -86,7 +86,7 @@ function announceWinner() {
     const div = document.createElement('div');
     div.id = 'winner';
     div.className = 'winner';
-    div.textContent = `The winner is ${currentPlayer}!`;
+    div.textContent = `The winner is ${GAME_STATE.currentPlayer}!`;
     GAME_STATE.winnerAnnouncement = new CSS2DObject(div);
     GAME_STATE.winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
     scene.add(GAME_STATE.winnerAnnouncement);
@@ -138,7 +138,7 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
                         if (gameBoard[gridY][gridX] === null) {
                             drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
                             GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
-                            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+                            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
                         }
                     }
                 }
@@ -298,7 +298,7 @@ function restartGameHandlerFactory(gameBoard) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
         GAME_STATE.currentPlayer = 'black';
-        GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+        GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
         GAME_STATE.gameOver = false;
 
         if (GAME_STATE.winnerAnnouncement) {
