@@ -16,11 +16,12 @@ const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
 const GAME_STATE = {
-  currentPlayer : 'black',
-  currentPlayerLabel : null,
-  winnerAnnouncement: null,
-  restartButtonLabel : null,
-  stonesInScene : []
+    currentPlayer: 'black',
+    currentPlayerLabel: null,
+    winnerAnnouncement: null,
+    restartButtonLabel: null,
+    stonesInScene: [],
+    gameOver: false
 }
 
 function initializeGameBoard() {
@@ -111,6 +112,9 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
     };
 
     const handlePlayerTurn = function (event) {
+        if (GAME_STATE.gameOver) {
+            return;
+        }
             try {
                 const mouse = new THREE.Vector2();
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -248,6 +252,7 @@ function drawStone(x, y, color, gameBoard) {
     gameBoard[y][x] = color;
     const isGameInWinningState = checkWin(gameBoard, x, y);
     if (isGameInWinningState) {
+        GAME_STATE.gameOver = true;
         announceWinner();
     }
 }
@@ -294,6 +299,7 @@ function restartGameHandlerFactory(gameBoard) {
         clearGameBoard(scene, gameBoard);
         GAME_STATE.currentPlayer = 'black';
         GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+        GAME_STATE.gameOver = false;
 
         if (GAME_STATE.winnerAnnouncement) {
             scene.remove(GAME_STATE.winnerAnnouncement);
