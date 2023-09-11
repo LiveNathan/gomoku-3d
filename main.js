@@ -106,6 +106,50 @@ function announceWinner() {
     scene.add(GAME_STATE.winnerAnnouncement);
 }
 
+const calculateMousePosition = (event) => {
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    return mouse;
+}
+
+const handlePlayerTurn = (event, camera, raycaster, plane, gameBoard) => {
+    if (GAME_STATE.gameOver) {
+        return;
+    }
+
+    try {
+        const mouse = calculateMousePosition(event);
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects([plane]);
+
+        if (intersects.length === 0) {
+            return;
+        }
+
+        if (intersects.length > 0) {
+            let intersectPoint = intersects[0].point;
+            let gridX = Math.round(intersectPoint.x);
+            let gridY = Math.round(Math.abs(intersectPoint.y));
+
+            // check if grid indexes are within the board size
+            const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
+            if (gridIndexWithinBounds) {
+                // Draw a new stone only if the grid cell is currently empty
+                if (gameBoard[gridY][gridX] === null) {
+                    drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
+                    GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
+                    GAME_STATE.currentPlayerLabel.element.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
+                    GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
+                }
+            }
+        }
+
+    } catch (e) {
+        console.error('An error occurred while processing player turn: ', e);
+    }
+}
+
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
     let isDragging = false;
@@ -120,48 +164,10 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
 
     const handleMouseUp = function (event) {
         if (!isDragging) {
-            handlePlayerTurn(event);
+            handlePlayerTurn(event, camera, raycaster, plane, gameBoard);
         }
         isDragging = false;
     };
-
-    const handlePlayerTurn = function (event) {
-            if (GAME_STATE.gameOver) {
-                return;
-            }
-            try {
-                const mouse = new THREE.Vector2();
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects([plane]);
-
-                if (intersects.length === 0) {
-                    return;  // If not clicking on game board, do nothing.
-                }
-
-                if (intersects.length > 0) {
-                    let intersectPoint = intersects[0].point;
-                    let gridX = Math.round(intersectPoint.x);
-                    let gridY = Math.round(Math.abs(intersectPoint.y));
-
-                    // check if grid indexes are within the board size
-                    const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
-                    if (gridIndexWithinBounds) {
-                        // Draw a new stone only if the grid cell is currently empty
-                        if (gameBoard[gridY][gridX] === null) {
-                            drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
-                            GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
-                            GAME_STATE.currentPlayerLabel.element.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
-                            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('An error occurred while processing player turn: ', e);
-            }
-        }
-    ;
 
     window.addEventListener('mousedown', handleMouseDown, false);
     window.addEventListener('mousemove', handleMouseMove, false);
