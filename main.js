@@ -24,7 +24,8 @@ const GAME_STATE = {
     winnerAnnouncement: null,
     restartButtonLabel: null,
     stonesInScene: [],
-    gameOver: false
+    gameOver: false,
+    replayButtonLabel: null
 }
 
 function initializeGameBoard() {
@@ -125,9 +126,9 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
     };
 
     const handlePlayerTurn = function (event) {
-        if (GAME_STATE.gameOver) {
-            return;
-        }
+            if (GAME_STATE.gameOver) {
+                return;
+            }
             try {
                 const mouse = new THREE.Vector2();
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -250,7 +251,7 @@ loader.load(
     }
 );
 
-function drawStone(x, y, color, gameBoard) {
+function drawStone(x, y, color, gameBoard, isReplay = false) {
     let sphereGeometry = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_WIDTH_SEGMENT, SPHERE_HEIGHT_SEGMENT);
     let stoneMaterial;
     let texture = color === 'black' ? blackStoneTexture : whiteStoneTexture;
@@ -262,13 +263,16 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
-    GAME_STATE.stonesInScene.push(stone);
+    // GAME_STATE.stonesInScene.push(stone);
     gameBoard[y][x] = color;
-    const isGameInWinningState = checkWin(gameBoard, x, y);
-    if (isGameInWinningState) {
-        GAME_STATE.gameOver = true;
-        announceWinner();
+    if (!isReplay) {
+        const isGameInWinningState = checkWin(gameBoard, x, y);
+        if (isGameInWinningState) {
+            GAME_STATE.gameOver = true;
+            announceWinner();
+        }
     }
+    GAME_STATE.stonesInScene.push({stone: stone, x: x, y: y, color: color});
 }
 
 function drawAxes() {
@@ -293,8 +297,8 @@ function animate(renderer, labelRenderer, camera, controls) {
 }
 
 function clearGameBoard(scene, gameBoard) {
-    for (let stone of GAME_STATE.stonesInScene) {
-        scene.remove(stone);
+    for (let stoneObject of GAME_STATE.stonesInScene) {
+        scene.remove(stoneObject.stone);
     }
     GAME_STATE.stonesInScene = [];
 
@@ -326,9 +330,9 @@ function createRestartButton(gameBoard) {
     const button = document.createElement('button');
     button.innerText = "Restart";
     button.className = 'restart-button';
-    button.onclick = restartGameHandlerFactory(gameBoard); // set button's click handler to restartGame function
+    button.onclick = restartGameHandlerFactory(gameBoard);
     GAME_STATE.restartButtonLabel = new CSS2DObject(button);
-    GAME_STATE.restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
+    GAME_STATE.restartButtonLabel.position.set(BOARD_SIZE, 2, 0);
     scene.add(GAME_STATE.restartButtonLabel);
 }
 
@@ -369,7 +373,7 @@ function checkWin(gameBoard, x, y) {
 }
 
 function undoGameHandlerFactory(gameBoard) {
-    return function(event) {
+    return function (event) {
         event.preventDefault();
 
         if (GAME_STATE.stonesInScene.length > 0) {
@@ -392,8 +396,36 @@ function createUndoButton(gameBoard) {
     button.className = 'undo-button';
     button.onclick = undoGameHandlerFactory(gameBoard);
     const undoButtonLabel = new CSS2DObject(button);
-    undoButtonLabel.position.set(BOARD_SIZE -3, 2, 0);
+    undoButtonLabel.position.set(BOARD_SIZE - 3, 2, 0);
     scene.add(undoButtonLabel);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function replayGame(gameBoard) {
+    const copyOfStonesInScene = [...GAME_STATE.stonesInScene];
+    clearGameBoard(scene, gameBoard);
+    for (let i = 0; i < copyOfStonesInScene.length; i++) {
+        let stoneObj = copyOfStonesInScene[i];
+        let {x, y, color} = stoneObj;
+        drawStone(Math.round(x), Math.round(y), color, gameBoard, true);
+        await sleep(1000);
+    }
+}
+
+function createReplayButton(gameBoard) {
+    const button = document.createElement('button');
+    button.innerText = "Replay";
+    button.className = 'replay-button';
+    button.onclick = function () {
+        replayGame(gameBoard);
+    }
+    const replayButtonLabel = new CSS2DObject(button);
+    replayButtonLabel.position.set(BOARD_SIZE - 6, 2, 0);
+    scene.add(replayButtonLabel);
+    return replayButtonLabel;
 }
 
 
@@ -414,6 +446,7 @@ function main() {
     drawAxes();
 
     createUndoButton(gameBoard);
+    GAME_STATE.replayButtonLabel = createReplayButton(gameBoard);
     createRestartButton(gameBoard);
 
     animate(renderer, labelRenderer, camera, controls);

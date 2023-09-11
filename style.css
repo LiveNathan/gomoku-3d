@@ -12,6 +12,7 @@ body {
     font-size: 12px;
     width: 100px;
     text-align: center;
+    display: none;
 }
 
 .player-info {
@@ -74,12 +75,29 @@ body {
     cursor: pointer;
 }
 
+.replay-button {
+    background-color: #000000;
+    border: 2px solid gray;
+    color: white;
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+}
+
 .restart-button:hover {
     background-color: #45a049;
 }
 
 .undo-button:hover {
     background-color: #be3a3a;
+}
+
+.replay-button:hover {
+    background-color: #a13abe;
 }
 
 .undo-button:active {
