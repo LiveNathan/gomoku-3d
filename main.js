@@ -368,6 +368,35 @@ function checkWin(gameBoard, x, y) {
     return false;
 }
 
+function undoGameHandlerFactory(gameBoard) {
+    return function(event) {
+        event.preventDefault();
+
+        if (GAME_STATE.stonesInScene.length > 0) {
+            let lastStone = GAME_STATE.stonesInScene.pop();
+            scene.remove(lastStone);
+
+            let x = Math.round(lastStone.position.x);
+            let y = Math.round(Math.abs(lastStone.position.y));
+            gameBoard[y][x] = null;
+
+            GAME_STATE.currentPlayer = (GAME_STATE.currentPlayer === 'white') ? 'black' : 'white';
+            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
+        }
+    }
+}
+
+function createUndoButton(gameBoard) {
+    const button = document.createElement('button');
+    button.innerText = "Undo";
+    button.className = 'undo-button';
+    button.onclick = undoGameHandlerFactory(gameBoard);
+    const undoButtonLabel = new CSS2DObject(button);
+    undoButtonLabel.position.set(BOARD_SIZE -3, 2, 0);
+    scene.add(undoButtonLabel);
+}
+
+
 function main() {
     const {gameBoard} = initializeGameBoard();
     const camera = initializeCamera();
@@ -384,6 +413,7 @@ function main() {
     createPlayerInfoLabel();
     drawAxes();
 
+    createUndoButton(gameBoard);
     createRestartButton(gameBoard);
 
     animate(renderer, labelRenderer, camera, controls);

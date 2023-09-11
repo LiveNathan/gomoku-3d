@@ -61,14 +61,29 @@ body {
     cursor: pointer; /* Add a mouse pointer on hover */
 }
 
-/* Change background color when you move mouse over it (hover) */
+.undo-button {
+    background-color: #000000;
+    border: 2px solid gray;
+    color: white;
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+}
+
 .restart-button:hover {
     background-color: #45a049;
 }
 
-/* Add background color and box shadow on click (active) */
-.restart-button:active {
+.undo-button:hover {
+    background-color: #be3a3a;
+}
+
+.undo-button:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
-    transform: translateY(4px); /* Move the button 4px down */
+    transform: translateY(4px);
 }
