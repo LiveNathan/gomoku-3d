@@ -16,11 +16,16 @@ const WINNING_NUMBER_OF_STONES = 5;
 
 const scene = new THREE.Scene();
 const GAME_STATE = {
-  currentPlayer : 'black',
-  currentPlayerLabel : null,
-  winnerAnnouncement: null,
-  restartButtonLabel : null,
-  stonesInScene : []
+    currentPlayer: 'black',
+    playerScores: {black: 0, white: 0},
+    scoreboardDiv: null,
+    scoreboard: null,
+    currentPlayerLabel: null,
+    winnerAnnouncement: null,
+    restartButtonLabel: null,
+    stonesInScene: [],
+    gameOver: false,
+    replayButtonLabel: null
 }
 
 function initializeGameBoard() {
@@ -74,85 +79,106 @@ function createLabelRenderer() {
 function createPlayerInfoLabel() {
     const div = document.createElement('div');
     div.id = 'player-info';
-    div.className = 'label';
-    div.textContent = `Player turn: ${currentPlayer}`;
+    div.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
+    div.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
     GAME_STATE.currentPlayerLabel = new CSS2DObject(div);
-    GAME_STATE.currentPlayerLabel.position.set(0, 1, 0);
+    GAME_STATE.currentPlayerLabel.position.set(2, 1, 0);
     scene.add(GAME_STATE.currentPlayerLabel);
+}
+
+function createScoreBoard() {
+    GAME_STATE.scoreboardDiv = document.createElement('div');
+    GAME_STATE.scoreboardDiv.id = 'score-board';
+    GAME_STATE.scoreboardDiv.className = 'score-board';
+    GAME_STATE.scoreboardDiv.textContent = `Black: ${GAME_STATE.playerScores["black"]}  White: ${GAME_STATE.playerScores["white"]}`;
+    GAME_STATE.scoreboard = new CSS2DObject(GAME_STATE.scoreboardDiv);
+    GAME_STATE.scoreboard.position.set(BOARD_SIZE, 1, 0);
+    scene.add(GAME_STATE.scoreboard);
 }
 
 function announceWinner() {
     const div = document.createElement('div');
     div.id = 'winner';
     div.className = 'winner';
-    div.textContent = `The winner is ${currentPlayer}!`;
+    div.textContent = `The winner is ${GAME_STATE.currentPlayer}!`;
     GAME_STATE.winnerAnnouncement = new CSS2DObject(div);
     GAME_STATE.winnerAnnouncement.position.set(HALF_BOARD_SIZE, 1, 0);
     scene.add(GAME_STATE.winnerAnnouncement);
 }
 
+const calculateMousePosition = (event) => {
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    return mouse;
+}
+
+const handlePlayerTurn = (event, camera, raycaster, plane, gameBoard) => {
+    if (GAME_STATE.gameOver) {
+        return;
+    }
+
+    try {
+        const mouse = calculateMousePosition(event);
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects([plane]);
+
+        if (intersects.length === 0) {
+            return;
+        }
+
+        if (intersects.length > 0) {
+            let intersectPoint = intersects[0].point;
+            let gridX = Math.round(intersectPoint.x);
+            let gridY = Math.round(Math.abs(intersectPoint.y));
+
+            // check if grid indexes are within the board size
+            const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
+            if (gridIndexWithinBounds) {
+                // Draw a new stone only if the grid cell is currently empty
+                if (gameBoard[gridY][gridX] === null) {
+                    drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
+                    GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
+                    GAME_STATE.currentPlayerLabel.element.className = ['player-info', `player-color-${GAME_STATE.currentPlayer}`].join(' ');
+                    GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
+                }
+            }
+        }
+
+    } catch (e) {
+        console.error('An error occurred while processing player turn: ', e);
+    }
+}
+
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
-    let isDragging = false;
+    let startX, startY;
+    let minDelta = 6;
 
     const handleMouseDown = function (event) {
-        isDragging = false;
-    };
-
-    const handleMouseMove = function (event) {
-        isDragging = true;
+        startX = event.pageX;
+        startY = event.pageY;
     };
 
     const handleMouseUp = function (event) {
-        if (!isDragging) {
-            handlePlayerTurn(event);
+        const diffX = Math.abs(event.pageX - startX);
+        const diffY = Math.abs(event.pageY - startY);
+
+        if (diffX < minDelta && diffY < minDelta) {
+            handlePlayerTurn(event, camera, raycaster, plane, gameBoard);
+            return;
         }
-        isDragging = false;
+      
+      // handleOrbit();
     };
 
-    const handlePlayerTurn = function (event) {
-            try {
-                const mouse = new THREE.Vector2();
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects([plane]);
-
-                if (intersects.length === 0) {
-                    return;  // If not clicking on game board, do nothing.
-                }
-
-                if (intersects.length > 0) {
-                    let intersectPoint = intersects[0].point;
-                    let gridX = Math.round(intersectPoint.x);
-                    let gridY = Math.round(Math.abs(intersectPoint.y));
-
-                    // check if grid indexes are within the board size
-                    const gridIndexWithinBounds = gridX >= 0 && gridX <= BOARD_SIZE && gridY >= 0 && gridY <= BOARD_SIZE
-                    if (gridIndexWithinBounds) {
-                        // Draw a new stone only if the grid cell is currently empty
-                        if (gameBoard[gridY][gridX] === null) {
-                            drawStone(gridX, gridY, GAME_STATE.currentPlayer, gameBoard);
-                            GAME_STATE.currentPlayer = GAME_STATE.currentPlayer === 'black' ? 'white' : 'black';
-                            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('An error occurred while processing player turn: ', e);
-            }
-        }
-    ;
-
     window.addEventListener('mousedown', handleMouseDown, false);
-    window.addEventListener('mousemove', handleMouseMove, false);
     window.addEventListener('mouseup', handleMouseUp, false);
     window.addEventListener('resize', updateSizes, false);
 
     // Return a function to clean up listeners when they're no longer needed
     const cleanup = function () {
         window.removeEventListener('mousedown', handleMouseDown);
-        window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
         window.removeEventListener('resize', updateSizes);
     };
@@ -232,7 +258,7 @@ loader.load(
     }
 );
 
-function drawStone(x, y, color, gameBoard) {
+function drawStone(x, y, color, gameBoard, isReplay = false) {
     let sphereGeometry = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_WIDTH_SEGMENT, SPHERE_HEIGHT_SEGMENT);
     let stoneMaterial;
     let texture = color === 'black' ? blackStoneTexture : whiteStoneTexture;
@@ -244,12 +270,16 @@ function drawStone(x, y, color, gameBoard) {
     let stone = new THREE.Mesh(sphereGeometry, stoneMaterial);
     stone.position.set(x, -y, 0.5);
     scene.add(stone);
-    GAME_STATE.stonesInScene.push(stone);
+    // GAME_STATE.stonesInScene.push(stone);
     gameBoard[y][x] = color;
-    const isGameInWinningState = checkWin(gameBoard, x, y);
-    if (isGameInWinningState) {
-        announceWinner();
+    if (!isReplay) {
+        const isGameInWinningState = checkWin(gameBoard, x, y);
+        if (isGameInWinningState) {
+            GAME_STATE.gameOver = true;
+            announceWinner();
+        }
     }
+    GAME_STATE.stonesInScene.push({stone: stone, x: x, y: y, color: color});
 }
 
 function drawAxes() {
@@ -274,8 +304,8 @@ function animate(renderer, labelRenderer, camera, controls) {
 }
 
 function clearGameBoard(scene, gameBoard) {
-    for (let stone of GAME_STATE.stonesInScene) {
-        scene.remove(stone);
+    for (let stoneObject of GAME_STATE.stonesInScene) {
+        scene.remove(stoneObject.stone);
     }
     GAME_STATE.stonesInScene = [];
 
@@ -293,7 +323,8 @@ function restartGameHandlerFactory(gameBoard) {
         event.preventDefault();
         clearGameBoard(scene, gameBoard);
         GAME_STATE.currentPlayer = 'black';
-        GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${currentPlayer}`;
+        GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
+        GAME_STATE.gameOver = false;
 
         if (GAME_STATE.winnerAnnouncement) {
             scene.remove(GAME_STATE.winnerAnnouncement);
@@ -306,9 +337,9 @@ function createRestartButton(gameBoard) {
     const button = document.createElement('button');
     button.innerText = "Restart";
     button.className = 'restart-button';
-    button.onclick = restartGameHandlerFactory(gameBoard); // set button's click handler to restartGame function
+    button.onclick = restartGameHandlerFactory(gameBoard);
     GAME_STATE.restartButtonLabel = new CSS2DObject(button);
-    GAME_STATE.restartButtonLabel.position.set(BOARD_SIZE, 2, 0); // adjust position as needed
+    GAME_STATE.restartButtonLabel.position.set(BOARD_SIZE, 2, 0);
     scene.add(GAME_STATE.restartButtonLabel);
 }
 
@@ -339,6 +370,8 @@ function checkWin(gameBoard, x, y) {
             countStonesInDirection(gameBoard, x, y, directions[i + 1][0], directions[i + 1][1], mostRecentStoneColor) - 1;
 
         if (total >= WINNING_NUMBER_OF_STONES) {
+            GAME_STATE.playerScores[mostRecentStoneColor] += 1;
+            GAME_STATE.scoreboardDiv.textContent = `Black: ${GAME_STATE.playerScores["black"]}  White: ${GAME_STATE.playerScores["white"]}`;
             return true;
         }
     }
@@ -346,12 +379,70 @@ function checkWin(gameBoard, x, y) {
     return false;
 }
 
+function undoGameHandlerFactory(gameBoard) {
+    return function (event) {
+        event.preventDefault();
+
+        if (GAME_STATE.stonesInScene.length > 0) {
+            let lastStone = GAME_STATE.stonesInScene.pop();
+            scene.remove(lastStone);
+
+            let x = Math.round(lastStone.position.x);
+            let y = Math.round(Math.abs(lastStone.position.y));
+            gameBoard[y][x] = null;
+
+            GAME_STATE.currentPlayer = (GAME_STATE.currentPlayer === 'white') ? 'black' : 'white';
+            GAME_STATE.currentPlayerLabel.element.textContent = `Player turn: ${GAME_STATE.currentPlayer}`;
+        }
+    }
+}
+
+function createUndoButton(gameBoard) {
+    const button = document.createElement('button');
+    button.innerText = "Undo";
+    button.className = 'undo-button';
+    button.onclick = undoGameHandlerFactory(gameBoard);
+    const undoButtonLabel = new CSS2DObject(button);
+    undoButtonLabel.position.set(BOARD_SIZE - 3, 2, 0);
+    scene.add(undoButtonLabel);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function replayGame(gameBoard) {
+    const copyOfStonesInScene = [...GAME_STATE.stonesInScene];
+    clearGameBoard(scene, gameBoard);
+    for (let i = 0; i < copyOfStonesInScene.length; i++) {
+        let stoneObj = copyOfStonesInScene[i];
+        let {x, y, color} = stoneObj;
+        drawStone(Math.round(x), Math.round(y), color, gameBoard, true);
+        await sleep(1000);
+    }
+}
+
+function createReplayButton(gameBoard) {
+    const button = document.createElement('button');
+    button.innerText = "Replay";
+    button.className = 'replay-button';
+    button.onclick = function () {
+        replayGame(gameBoard);
+    }
+    const replayButtonLabel = new CSS2DObject(button);
+    replayButtonLabel.position.set(BOARD_SIZE - 6, 2, 0);
+    scene.add(replayButtonLabel);
+    return replayButtonLabel;
+}
+
+
 function main() {
     const {gameBoard} = initializeGameBoard();
     const camera = initializeCamera();
     const renderer = createRenderer();
     const controls = initializeControls(camera, renderer);
     const labelRenderer = createLabelRenderer();
+    createScoreBoard();
     const updateSizes = createUpdateSizes(camera, renderer, labelRenderer);
     const raycaster = new THREE.Raycaster();
     const plane = createPlane();
@@ -361,6 +452,8 @@ function main() {
     createPlayerInfoLabel();
     drawAxes();
 
+    createUndoButton(gameBoard);
+    GAME_STATE.replayButtonLabel = createReplayButton(gameBoard);
     createRestartButton(gameBoard);
 
     animate(renderer, labelRenderer, camera, controls);

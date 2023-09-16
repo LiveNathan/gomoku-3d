@@ -2,13 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-body { margin: 0; }
+body {
+    margin: 0;
+}
+
 .label {
     position: absolute;
     color: gray;
     font-size: 12px;
     width: 100px;
     text-align: center;
+    display: none;
+}
+
+.player-info {
+    position: absolute;
+    color: gray;
+    font-size: 24px;
+    width: 200px;
+    text-align: center;
+}
+
+.player-color-black {
+    color: #444444;
+    text-shadow: 1px 1px 1px #ffffff;
+}
+
+.player-color-white {
+    color: white;
+    text-shadow: 1px 1px 1px #444444;
+}
+
+#score-board {
+    position: absolute;
+    color: gray;
+    font-size: 16px;
+    /*width: 200px;*/
+    text-align: right;
 }
 
 .winner {
@@ -20,7 +50,7 @@ body { margin: 0; }
 }
 
 .restart-button {
-    background-color: #000000; /* Green background */
+    background-color: #000000;
     border: 2px solid gray; /* Remove border */
     color: white; /* White text */
     padding: 10px 18px; /* Some padding */
@@ -32,14 +62,46 @@ body { margin: 0; }
     cursor: pointer; /* Add a mouse pointer on hover */
 }
 
-/* Change background color when you move mouse over it (hover) */
+.undo-button {
+    background-color: #000000;
+    border: 2px solid gray;
+    color: white;
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+}
+
+.replay-button {
+    background-color: #000000;
+    border: 2px solid gray;
+    color: white;
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+}
+
 .restart-button:hover {
     background-color: #45a049;
 }
 
-/* Add background color and box shadow on click (active) */
-.restart-button:active {
+.undo-button:hover {
+    background-color: #be3a3a;
+}
+
+.replay-button:hover {
+    background-color: #a13abe;
+}
+
+.undo-button:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
-    transform: translateY(4px); /* Move the button 4px down */
+    transform: translateY(4px);
 }
