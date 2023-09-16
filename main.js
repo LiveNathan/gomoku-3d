@@ -152,32 +152,33 @@ const handlePlayerTurn = (event, camera, raycaster, plane, gameBoard) => {
 
 function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, raycaster, plane, updateSizes) {
 
-    let isDragging = false;
+    let startX, startY;
+    let minDelta = 6;
 
     const handleMouseDown = function (event) {
-        isDragging = false;
-    };
-
-    const handleMouseMove = function (event) {
-        isDragging = true;
+        startX = event.pageX;
+        startY = event.pageY;
     };
 
     const handleMouseUp = function (event) {
-        if (!isDragging) {
+        const diffX = Math.abs(event.pageX - startX);
+        const diffY = Math.abs(event.pageY - startY);
+
+        if (diffX < minDelta && diffY < minDelta) {
             handlePlayerTurn(event, camera, raycaster, plane, gameBoard);
+            return;
         }
-        isDragging = false;
+      
+      // handleOrbit();
     };
 
     window.addEventListener('mousedown', handleMouseDown, false);
-    window.addEventListener('mousemove', handleMouseMove, false);
     window.addEventListener('mouseup', handleMouseUp, false);
     window.addEventListener('resize', updateSizes, false);
 
     // Return a function to clean up listeners when they're no longer needed
     const cleanup = function () {
         window.removeEventListener('mousedown', handleMouseDown);
-        window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
         window.removeEventListener('resize', updateSizes);
     };
