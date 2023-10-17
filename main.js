@@ -168,8 +168,8 @@ function initializeEventListeners(camera, renderer, labelRenderer, gameBoard, ra
             handlePlayerTurn(event, camera, raycaster, plane, gameBoard);
             return;
         }
-      
-      // handleOrbit();
+
+        // handleOrbit();
     };
 
     window.addEventListener('mousedown', handleMouseDown, false);
@@ -343,19 +343,13 @@ function createRestartButton(gameBoard) {
     scene.add(GAME_STATE.restartButtonLabel);
 }
 
-function countStonesInDirection(gameBoard, startX, startY, offsetDX, offsetDY, color) {
-    let count = 1;
-
+function countStonesInDirection(gameBoard, startX, startY, offsetDX, offsetDY, color, count = 1) {
     let x = startX + offsetDX;
     let y = startY + offsetDY;
 
-    while (x >= 0 && x <= BOARD_SIZE && y >= 0 && y <= BOARD_SIZE) {
-        if (gameBoard[y][x] !== color) {
-            break;
-        }
-        count++;
-        x += offsetDX;
-        y += offsetDY;
+    // Check if coordinates are within the game board and if the color is the same
+    if (x >= 0 && x <= BOARD_SIZE && y >= 0 && y <= BOARD_SIZE && gameBoard[y][x] === color) {
+        count = countStonesInDirection(gameBoard, x, y, offsetDX, offsetDY, color, count + 1);
     }
 
     return count;
